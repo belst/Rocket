@@ -5,6 +5,7 @@ use std::borrow::Cow;
 
 use http::uri::{Uri, Segments, SegmentError};
 use http::RawStr;
+use request::Request;
 
 /// Trait to convert a dynamic path segment string to a concrete value.
 ///
@@ -200,6 +201,9 @@ pub trait FromParam<'a>: Sized {
     /// Parses an instance of `Self` from a dynamic path parameter string or
     /// returns an `Error` if one cannot be parsed.
     fn from_param(param: &'a RawStr) -> Result<Self, Self::Error>;
+    fn from_param_with_request(param: &'a RawStr, _req: &'a self::Request) -> Result<Self, Self::Error> {
+        Self::from_param(param)
+    }
 }
 
 impl<'a> FromParam<'a> for &'a RawStr {

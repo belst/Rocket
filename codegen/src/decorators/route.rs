@@ -148,7 +148,7 @@ impl RouteParams {
             let ident = param.ident().prepend(PARAM_PREFIX);
             let expr = match *param {
                 Param::Single(_) => quote_expr!(ecx, match __req.get_param_str($i) {
-                    Some(s) => <$ty as ::rocket::request::FromParam>::from_param(s),
+                    Some(s) => <$ty as ::rocket::request::FromParam>::from_param_with_request(s, &__req),
                     None => return ::rocket::Outcome::Forward(__data)
                 }),
                 Param::Many(_) => quote_expr!(ecx, match __req.get_raw_segments($i) {
