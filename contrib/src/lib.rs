@@ -1,4 +1,4 @@
-#![feature(macro_reexport)]
+#![feature(use_extern_macros)]
 
 // TODO: Version URLs.
 #![doc(html_root_url = "https://api.rocket.rs")]
@@ -20,7 +20,7 @@
 //! * [msgpack](struct.MsgPack.html)
 //! * [handlebars_templates](struct.Template.html)
 //! * [tera_templates](struct.Template.html)
-//! * [uuid](struct.UUID.html)
+//! * [uuid](struct.Uuid.html)
 //!
 //! The recommend way to include features from this crate via Cargo in your
 //! project is by adding a `[dependencies.rocket_contrib]` section to your
@@ -44,8 +44,10 @@
 extern crate serde;
 
 #[cfg(feature = "json")]
-#[cfg_attr(feature = "json", macro_reexport(json_internal))]
 extern crate serde_json;
+
+#[cfg(feature = "json")]
+pub use serde_json::json_internal;
 
 #[cfg(feature = "handlebars_templates")]
 pub extern crate handlebars;
@@ -78,4 +80,4 @@ pub use templates::{Template, Engines};
 mod uuid;
 
 #[cfg(feature = "uuid")]
-pub use uuid::{UUID, UuidParseError};
+pub use uuid::{Uuid, UuidParseError};

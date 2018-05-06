@@ -2,6 +2,8 @@
 #![feature(const_fn)]
 #![feature(plugin, decl_macro)]
 #![feature(try_trait)]
+#![feature(fnbox)]
+#![feature(never_type)]
 #![recursion_limit="256"]
 
 #![plugin(pear_codegen)]
@@ -95,6 +97,9 @@
 //! and itegration testing of a Rocket application. The [top-level `local`
 //! module documentation](/rocket/local) and the [testing chapter of the
 //! guide](https://rocket.rs/guide/testing/#testing) include detailed examples.
+
+#[allow(unused_imports)] #[macro_use] extern crate rocket_codegen_next;
+#[doc(hidden)] pub use rocket_codegen_next::*;
 
 #[macro_use] extern crate log;
 #[macro_use] extern crate pear;
