@@ -2,20 +2,21 @@
 name = "todo"
 version = "0.0.0"
 workspace = "../../"
+publish = false
 
 [dependencies]
-rocket = { path = "../../lib" }
-rocket_codegen = { path = "../../codegen" }
+rocket = { path = "../../core/lib" }
+rocket_codegen = { path = "../../core/codegen" }
 serde = "1.0"
 serde_json = "1.0"
 serde_derive = "1.0"
-diesel = { version = "1.1", features = ["sqlite", "r2d2"] }
+diesel = { version = "<= 1.2", features = ["sqlite", "r2d2"] }
 
 [dev-dependencies]
 parking_lot = {version = "0.5", features = ["nightly"]}
 rand = "0.4"
 
 [dependencies.rocket_contrib]
-path = "../../contrib"
+path = "../../contrib/lib"
 default_features = false
 features = [ "tera_templates" ]

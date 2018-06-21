@@ -1,3 +1,20 @@
+# Version 0.3.12 (May 31, 2018)
+
+## Codegen
+
+  * Codegen was updated for `2018-05-30` nightly.
+  * Minimum required `rustc` is `1.28.0-nightly 2018-05-30`.
+
+# Version 0.3.11 (May 19, 2018)
+
+## Core
+
+  * Core was updated for `2018-05-18` nightly.
+
+## Infrastructure
+
+  * Fixed injection of dependencies for codegen compile-fail tests.
+
 # Version 0.3.10 (May 05, 2018)
 
 ## Core
@@ -221,7 +238,7 @@ This release includes the following new features:
   * [`Response::content_type()`] was added to easily retrieve the Content-Type
     header of a response.
   * Size limits on incoming data are [now
-    configurable](https://rocket.rs/guide/overview/#configuration).
+    configurable](https://rocket.rs/guide/configuration/#data-limits).
   * [`Request::limits()`] was added to retrieve incoming data limits.
   * Responders may dynamically adjust their response based on the incoming
     request.
