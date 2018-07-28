@@ -3,7 +3,7 @@ use std::fmt::Display;
 use syntax::codemap::Span;
 use syntax::ext::base::{DummyResult, ExtCtxt, MacEager, MacResult};
 use syntax::tokenstream::{TokenStream, TokenTree};
-use syntax::ast::{self, MacDelimiter, Ident};
+use syntax::ast::{self, GenericArg, MacDelimiter, Ident};
 use syntax::symbol::Symbol;
 use syntax::parse::PResult;
 use syntax::ext::build::AstBuilder;
@@ -28,7 +28,7 @@ pub fn uri(
     // so that errors from the `internal` call show up on the user's code.
     let expr = parser.mk_mac_expr(sp,
         ast::Mac_ {
-            path: path,
+            path,
             delim: MacDelimiter::Parenthesis,
             tts: args.to_vec().into_iter().collect::<TokenStream>().into(),
         },
@@ -128,12 +128,16 @@ pub fn uri_internal(
     // Building <$T as ::rocket::http::uri::FromUriParam<_>>::from_uri_param($e).
     for (i, &(mut ident, ref ty)) in internal.fn_args.iter().enumerate() {
         let (span, mut expr) = (exprs[i].span, exprs[i].clone());
+
+        // Format argument names cannot begin with `_`, but a function parameter
+        // might, so we prefix each parameter with the letters `fmt`.
+        ident.name = Symbol::intern(&format!("fmt{}", ident.name));
         ident.span = span;
 
         // path for call: <T as FromUriParam<_>>::from_uri_param
         let idents = split_idents("rocket::http::uri::FromUriParam");
-        let generics = vec![ecx.ty(span, ast::TyKind::Infer)];
-        let trait_path = ecx.path_all(span, true, idents, vec![], generics, vec![]);
+        let generics = vec![GenericArg::Type(ecx.ty(span, ast::TyKind::Infer))];
+        let trait_path = ecx.path_all(span, true, idents, generics, vec![]);
         let method = Ident::new(Symbol::intern("from_uri_param"), span);
         let (qself, path) = ecx.qpath(ty.clone(), trait_path, method);
 

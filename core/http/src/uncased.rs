@@ -1,7 +1,7 @@
 //! Contains types that encapsulate uncased ASCII strings.
 //!
 //! An 'uncased' ASCII string is case-preserving. That is, the string itself
-//! contains cased charaters, but comparison (including ordering, equaility, and
+//! contains cased characters, but comparison (including ordering, equality, and
 //! hashing) is case-insensitive.
 
 use std::ops::Deref;
@@ -39,6 +39,9 @@ impl UncasedStr {
     /// ```
     #[inline(always)]
     pub fn new(string: &str) -> &UncasedStr {
+        // This is simply a `newtype`-like transformation. The `repr(C)` ensures
+        // that this is safe and correct. Note this exact pattern appears often
+        // in the standard library.
         unsafe { &*(string as *const str as *const UncasedStr) }
     }
 
@@ -73,6 +76,9 @@ impl UncasedStr {
     /// ```
     #[inline(always)]
     pub fn into_uncased(self: Box<UncasedStr>) -> Uncased<'static> {
+        // This is the inverse of a `newtype`-like transformation. The `repr(C)`
+        // ensures that this is safe and correct. Note this exact pattern
+        // appears often in the standard library.
         unsafe {
             let raw_str = Box::into_raw(self) as *mut str;
             Uncased::from(Box::from_raw(raw_str).into_string())
@@ -210,6 +216,9 @@ impl<'s> Uncased<'s> {
     /// ```
     #[inline(always)]
     pub fn into_boxed_uncased(self) -> Box<UncasedStr> {
+        // This is simply a `newtype`-like transformation. The `repr(C)` ensures
+        // that this is safe and correct. Note this exact pattern appears often
+        // in the standard library.
         unsafe {
             let raw_str = Box::into_raw(self.string.into_owned().into_boxed_str());
             Box::from_raw(raw_str as *mut UncasedStr)

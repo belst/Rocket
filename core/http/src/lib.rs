@@ -1,6 +1,5 @@
 #![feature(specialization)]
-#![feature(proc_macro)]
-#![feature(proc_macro_non_items)]
+#![feature(proc_macro_non_items, use_extern_macros)]
 #![feature(const_fn)]
 #![recursion_limit="256"]
 
@@ -57,7 +56,7 @@ pub use self::header::{Header, HeaderMap};
 pub use self::raw_str::RawStr;
 
 pub use self::media_type::MediaType;
-pub use self::cookies::{Cookie, Cookies};
+pub use self::cookies::{Cookie, SameSite, Cookies};
 
 #[doc(hidden)]
 pub use self::cookies::{Key, CookieJar};

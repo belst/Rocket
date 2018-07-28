@@ -300,7 +300,7 @@ impl Rocket {
     // Finds the error catcher for the status `status` and executes it for the
     // given request `req`. If a user has registers a catcher for `status`, the
     // catcher is called. If the catcher fails to return a good response, the
-    // 500 catcher is executed. if there is no registered catcher for `status`,
+    // 500 catcher is executed. If there is no registered catcher for `status`,
     // the default catcher is used.
     fn handle_error<'r>(&self, status: Status, req: &'r Request) -> Response<'r> {
         warn_!("Responding with {} catcher.", Paint::red(&status));
@@ -344,7 +344,7 @@ impl Rocket {
     #[inline]
     pub fn ignite() -> Rocket {
         // Note: init() will exit the process under config errors.
-        Rocket::configured(config::init(), true)
+        Rocket::configured(config::init())
     }
 
     /// Creates a new `Rocket` application using the supplied custom
@@ -368,20 +368,19 @@ impl Rocket {
     ///     .finalize()?;
     ///
     /// # #[allow(unused_variables)]
-    /// let app = rocket::custom(config, false);
+    /// let app = rocket::custom(config);
     /// # Ok(())
     /// # }
     /// ```
     #[inline]
-    pub fn custom(config: Config, log: bool) -> Rocket {
-        Rocket::configured(config, log)
+    pub fn custom(config: Config) -> Rocket {
+        Rocket::configured(config)
     }
 
     #[inline]
-    fn configured(config: Config, log: bool) -> Rocket {
-        if log {
-            // Initialize logger. Temporary weaken log level for launch info.
-            logger::try_init(config.log_level, false);
+    fn configured(config: Config) -> Rocket {
+        if logger::try_init(config.log_level, false) {
+            // Temporary weaken log level for launch info.
             logger::push_max_level(logger::LoggingLevel::Normal);
         }
 
@@ -537,7 +536,7 @@ impl Rocket {
     /// ```
     #[inline]
     pub fn catch(mut self, catchers: Vec<Catcher>) -> Self {
-        info!("👾  {}:", Paint::purple("Catchers"));
+        info!("{}{}:", Paint::masked("👾  "), Paint::purple("Catchers"));
         for c in catchers {
             if self.catchers.get(&c.code).map_or(false, |e| !e.is_default()) {
                 let msg = "(warning: duplicate catcher!)";
@@ -601,7 +600,9 @@ impl Rocket {
         self
     }
 
-    /// Attaches a fairing to this instance of Rocket.
+    /// Attaches a fairing to this instance of Rocket. If the fairing is an
+    /// _attach_ fairing, it is run immediately. All other kinds of fairings
+    /// will be executed at their appropriate time.
     ///
     /// # Example
     ///

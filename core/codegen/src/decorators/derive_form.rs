@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use syntax::ext::base::{Annotatable, ExtCtxt};
 use syntax::print::pprust::{stmt_to_string};
 use syntax::ast::{ItemKind, Expr, MetaItem, Mutability, VariantData, Ident};
-use syntax::ast::{StructField, GenericParam};
+use syntax::ast::{StructField, GenericParamKind};
 use syntax::codemap::Span;
 use syntax::ext::build::AstBuilder;
 use syntax::ptr::P;
@@ -15,7 +15,7 @@ use syntax_ext::deriving::generic::MethodDef;
 use syntax_ext::deriving::generic::{StaticStruct, Substructure, TraitDef, ty};
 use syntax_ext::deriving::generic::combine_substructure as c_s;
 
-use utils::{strip_ty_lifetimes, is_valid_ident, SpanExt};
+use utils::{strip_ty_lifetimes, is_valid_ident, SpanExt, GenericParamExt};
 
 static ONLY_STRUCTS_ERR: &'static str = "`FromForm` can only be derived for \
     structures with named fields.";
@@ -26,12 +26,10 @@ fn struct_lifetime(ecx: &mut ExtCtxt, item: &Annotatable, sp: Span) -> Option<St
         Annotatable::Item(ref item) => match item.node {
             ItemKind::Struct(_, ref generics) => {
                 let mut lifetimes = generics.params.iter()
-                    .filter_map(|p| match *p {
-                        GenericParam::Lifetime(ref def) => Some(def),
-                        _ => None
-                    });
+                    .filter(|p| p.is_lifetime())
+                    .map(|p| p.ident.to_string());
 
-                let lifetime = lifetimes.next().map(|d| d.lifetime.ident.to_string());
+                let lifetime = lifetimes.next();
                 if lifetimes.next().is_some() {
                     ecx.span_err(generics.span, "cannot have more than one \
                         lifetime parameter when deriving `FromForm`.");
@@ -219,7 +217,7 @@ fn from_form_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substruct
         let (ident, name, span) = extract_field_ident_name(cx, field);
         let stripped_ty = strip_ty_lifetimes(field.ty.clone());
 
-        if let Some(sp) = names.get(&name).map(|sp| *sp) {
+        if let Some(sp) = names.get(&name).cloned() {
             cx.struct_span_err(span, "field with duplicate name")
                 .span_note(sp, "original was declared here")
                 .emit();
@@ -329,5 +327,3 @@ fn from_form_substructure(cx: &mut ExtCtxt, trait_span: Span, substr: &Substruct
 
     cx.expr_block(cx.block(trait_span, stmts))
 }
-
-

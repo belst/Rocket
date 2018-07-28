@@ -1,3 +1,27 @@
+# Version 0.3.15 (Jul 16, 2018)
+
+## Codegen
+
+  * The `#[catch]` decorator and `catchers!` macro were introduced, replacing
+    `#[error]` and `errors!`.
+  * The `#[error]` decorator and `errors!` macro were deprecated.
+  * Codegen was updated for `2018-07-15` nightly.
+  * Minimum required `rustc` is `1.29.0-nightly 2018-07-15`.
+
+# Version 0.3.14 (Jun 22, 2018)
+
+## Codegen
+
+  * Codegen was updated for `2018-06-22` nightly.
+  * Minimum required `rustc` is `1.28.0-nightly 2018-06-22`.
+
+# Version 0.3.13 (Jun 16, 2018)
+
+## Codegen
+
+  * Codegen was updated for `2018-06-12` nightly.
+  * Minimum required `rustc` is `1.28.0-nightly 2018-06-12`.
+
 # Version 0.3.12 (May 31, 2018)
 
 ## Codegen

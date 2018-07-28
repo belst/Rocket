@@ -39,13 +39,7 @@ impl<'a> Uri<'a> {
             (None, None) => ((0, end), None, None),
         };
 
-        Uri {
-            uri: uri,
-            path: path,
-            query: query,
-            fragment: fragment,
-            segment_count: AtomicIsize::new(EMPTY),
-        }
+        Uri { uri, path, query, fragment, segment_count: AtomicIsize::new(EMPTY) }
     }
 
     /// Returns the number of segments in the URI. Empty segments, which are
@@ -192,7 +186,7 @@ impl<'a> Uri<'a> {
         self.query.map(|(i, j)| &self.uri[i..j])
     }
 
-    /// Returns the fargment part of this URI without the hash mark, if there is
+    /// Returns the fragment part of this URI without the hash mark, if there is
     /// any.
     ///
     /// ### Examples

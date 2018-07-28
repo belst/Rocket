@@ -1,4 +1,5 @@
-#![feature(proc_macro, core_intrinsics, decl_macro)]
+#![feature(core_intrinsics, decl_macro)]
+#![feature(proc_macro_diagnostic, proc_macro_span)]
 #![recursion_limit="256"]
 
 extern crate syn;
@@ -9,7 +10,6 @@ extern crate proc_macro2;
 mod parser;
 mod spanned;
 mod ext;
-mod codegen_ext;
 
 use parser::Result as PResult;
 use proc_macro::{Span, TokenStream};
@@ -22,12 +22,6 @@ const NO_FIELDS_ERR: &str = "variants in `FromFormValue` derives cannot have fie
 const NO_GENERICS: &str = "enums with generics cannot derive `FromFormValue`";
 const ONLY_ENUMS: &str = "`FromFormValue` can only be derived for enums";
 const EMPTY_ENUM_WARN: &str = "deriving `FromFormValue` for empty enum";
-
-#[derive(Debug, Clone)]
-pub(crate) struct FieldMember<'f> {
-    field: &'f Field,
-    member: Member
-}
 
 fn validate_input(input: DeriveInput) -> PResult<DataEnum> {
     // This derive doesn't support generics. Error out if there are generics.
@@ -66,29 +60,20 @@ fn real_derive_from_form_value(input: TokenStream) -> PResult<TokenStream> {
 
     // Create iterators over the identifers as idents and as strings.
     let variant_strs = enum_data.variants.iter().map(|v| v.ident.to_string());
-    let variant_idents = enum_data.variants.iter().map(|v| v.ident.clone());
+    let variant_idents = enum_data.variants.iter().map(|v| &v.ident);
     let names = ::std::iter::repeat(&name);
 
     // Generate the implementation.
     Ok(quote! {
-        mod scope {
-            extern crate std;
-            extern crate rocket;
+        impl<'v> ::rocket::request::FromFormValue<'v> for #name {
+            type Error = &'v ::rocket::http::RawStr;
 
-            use self::std::prelude::v1::*;
-            use self::rocket::request::FromFormValue;
-            use self::rocket::http::RawStr;
+            fn from_form_value(v: &'v ::rocket::http::RawStr) -> ::std::result::Result<Self, Self::Error> {
+                #(if v.as_uncased_str() == #variant_strs {
+                    return ::std::result::Result::Ok(#names::#variant_idents);
+                })*
 
-            impl<'v> FromFormValue<'v> for #name {
-                type Error = &'v RawStr;
-
-                fn from_form_value(v: &'v RawStr) -> Result<Self, Self::Error> {
-                    #(if v.as_uncased_str() == #variant_strs {
-                        return Ok(#names::#variant_idents);
-                    })*
-
-                    Err(v)
-                }
+                ::std::result::Result::Err(v)
             }
         }
     }.into())

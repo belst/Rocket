@@ -39,7 +39,7 @@ use uncased::UncasedStr;
 ///
 /// A `RawStr` is a dynamically sized type (just like `str`). It is always used
 /// through a reference an as `&RawStr` (just like &str). You'll likely
-/// encounted an `&RawStr` as a parameter via [`FromParam`] or as a form value
+/// encounter an `&RawStr` as a parameter via [`FromParam`] or as a form value
 /// via [`FromFormValue`].
 ///
 /// [`FromParam`]: /rocket/request/trait.FromParam.html
@@ -63,7 +63,7 @@ impl RawStr {
     /// let raw_str: &RawStr = "Hello, world!".into();
     /// ```
     #[inline(always)]
-    pub fn from_str<'a>(string: &'a str) -> &'a RawStr {
+    pub fn from_str(string: &str) -> &RawStr {
         string.into()
     }
 
@@ -233,6 +233,33 @@ impl RawStr {
         }
 
         if escaped {
+            // This use of `unsafe` is only correct if the bytes in `allocated`
+            // form a valid UTF-8 string. We prove this by cases:
+            //
+            // 1. In the `!escaped` branch, capacity for the vector is first
+            //    allocated. No characters are pushed to `allocated` prior to
+            //    this branch running since the `escaped` flag isn't set. To
+            //    enter this branch, the current byte must be a valid ASCII
+            //    character. This implies that every byte preceding forms a
+            //    valid UTF-8 string since ASCII characters in UTF-8 are never
+            //    part of a multi-byte sequence. Thus, extending the `allocated`
+            //    vector with these bytes results in a valid UTF-8 string in
+            //    `allocated`.
+            //
+            // 2. After the `!escaped` branch, `allocated` is extended with a
+            //    byte string of valid ASCII characters. Thus, `allocated` is
+            //    still a valid UTF-8 string.
+            //
+            // 3. In the `_ if escaped` branch, the byte is simply pushed into
+            //    the `allocated` vector. At this point, `allocated` may contain
+            //    an invalid UTF-8 string as we are not a known boundary.
+            //    However, note that this byte is part of a known valid string
+            //    (`self`). If the byte is not part of a multi-byte sequence, it
+            //    is ASCII, and no further justification is needed. If the byte
+            //    _is_ part of a multi-byte sequence, it is _not_ ASCII, and
+            //    thus will not fall into the escaped character set and it will
+            //    be pushed into `allocated` subsequently, resulting in a valid
+            //    UTF-8 string in `allocated`.
             unsafe { Cow::Owned(String::from_utf8_unchecked(allocated)) }
         } else {
             Cow::Borrowed(self.as_str())
@@ -281,6 +308,9 @@ impl RawStr {
 impl<'a> From<&'a str> for &'a RawStr {
     #[inline(always)]
     fn from(string: &'a str) -> &'a RawStr {
+        // This is simply a `newtype`-like transformation. The `repr(C)` ensures
+        // that this is safe and correct. Note this exact pattern appears often
+        // in the standard library.
         unsafe { &*(string as *const str as *const RawStr) }
     }
 }

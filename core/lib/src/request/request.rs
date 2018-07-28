@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::cell::{Cell, RefCell};
 use std::net::{IpAddr, SocketAddr};
 use std::fmt;
@@ -26,6 +27,7 @@ struct RequestState<'r> {
     cookies: RefCell<CookieJar>,
     accept: Storage<Option<Accept>>,
     content_type: Storage<Option<ContentType>>,
+    cache: Rc<Container>,
 }
 
 /// The type of an incoming web request.
@@ -41,7 +43,7 @@ pub struct Request<'r> {
     uri: Uri<'r>,
     headers: HeaderMap<'r>,
     remote: Option<SocketAddr>,
-    state: RequestState<'r>
+    state: RequestState<'r>,
 }
 
 impl<'r> Request<'r> {
@@ -67,15 +69,47 @@ impl<'r> Request<'r> {
                 cookies: RefCell::new(CookieJar::new()),
                 accept: Storage::new(),
                 content_type: Storage::new(),
+                cache: Rc::new(Container::new()),
             }
         }
     }
 
     #[doc(hidden)]
     pub fn example<F: Fn(&mut Request)>(method: Method, uri: &str, f: F) {
-        let rocket = Rocket::custom(Config::development().unwrap(), true);
+        let rocket = Rocket::custom(Config::development().unwrap());
         let mut request = Request::new(&rocket, method, uri);
         f(&mut request);
+    }
+
+    /// Retrieves the cached value for type `T` from the request-local cached
+    /// state of `self`. If no such value has previously been cached for this
+    /// request, `f` is called to produce the value which is subsequently
+    /// returned.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// # use rocket::http::Method;
+    /// # use rocket::Request;
+    /// # struct User;
+    /// fn current_user(request: &Request) -> User {
+    ///     // Validate request for a given user, load from database, etc.
+    ///     # User
+    /// }
+    ///
+    /// # Request::example(Method::Get, "/uri", |request| {
+    /// let user = request.local_cache(|| current_user(request));
+    /// # });
+    /// ```
+    pub fn local_cache<T, F>(&self, f: F) -> &T
+        where F: FnOnce() -> T,
+              T: Send + Sync + 'static
+    {
+        self.state.cache.try_get()
+            .unwrap_or_else(|| {
+                self.state.cache.set(f());
+                self.state.cache.get()
+            })
     }
 
     /// Retrieve the method from `self`.
@@ -494,7 +528,7 @@ impl<'r> Request<'r> {
         self.state.route.get()
     }
 
-    /// Invokes the request guard implemention for `T`, returning its outcome.
+    /// Invokes the request guard implementation for `T`, returning its outcome.
     ///
     /// # Example
     ///
@@ -668,7 +702,7 @@ impl<'r> Request<'r> {
                     Err(_) => continue
                 };
 
-                for cookie_str in raw_str.split(";").map(|s| s.trim()) {
+                for cookie_str in raw_str.split(';').map(|s| s.trim()) {
                     if let Some(cookie) = Cookies::parse_cookie(cookie_str) {
                         cookie_jar.add_original(cookie);
                     }

@@ -10,6 +10,7 @@ pub use proc_macro2::Delimiter;
 
 pub type Result<T> = ::std::result::Result<T, Diagnostic>;
 
+#[derive(Copy, Clone)]
 pub enum Seperator {
     Comma,
     Pipe,
@@ -23,22 +24,26 @@ pub struct Parser {
 
 impl Parser {
     pub fn new(tokens: TokenStream) -> Parser {
-        let buffer = Box::new(TokenBuffer::new(tokens.into()));
+        let buffer = Box::new(TokenBuffer::new(tokens));
+        // Our `Parser` is self-referential. We cast a pointer to the heap
+        // allocation as `&'static` to allow the storage of the reference
+        // along-side the allocation. This is safe as long as `buffer` is never
+        // dropped while `self` lives, `buffer` is never mutated, and an
+        // instance or reference to `cursor` is never allowed to escape. These
+        // properties can be confirmed with a cursory look over the method
+        // signatures and implementations of `Parser`.
         let cursor = unsafe {
             let buffer: &'static TokenBuffer = ::std::mem::transmute(&*buffer);
             buffer.begin()
         };
 
-        Parser {
-            buffer: buffer,
-            cursor: cursor,
-        }
+        Parser { buffer, cursor }
     }
 
     pub fn current_span(&self) -> Span {
         self.cursor.token_tree()
             .map(|_| self.cursor.span().unstable())
-            .unwrap_or_else(|| Span::call_site())
+            .unwrap_or_else(Span::call_site)
     }
 
     pub fn parse<T: Synom>(&mut self) -> Result<T> {
@@ -46,6 +51,9 @@ impl Parser {
             .map_err(|e| {
                 let expected = match T::description() {
                     Some(desc) => desc,
+                    // We're just grabbing the type's name here. This is totally
+                    // unnecessary. There's nothing potentially memory-unsafe
+                    // about this. It's simply unsafe because it's an intrinsic.
                     None => unsafe { ::std::intrinsics::type_name::<T>() }
                 };
 
